@@ -3,12 +3,13 @@ from torch import nn
 import torch.nn.functional as F
 from einops import repeat
 
+
 class SimMIM(nn.Module):
     def __init__(
-        self,
-        *,
-        encoder,
-        masking_ratio = 0.5
+            self,
+            *,
+            encoder,
+            masking_ratio=0.5
     ):
         super().__init__()
         assert masking_ratio > 0 and masking_ratio < 1, 'masking ratio must be kept between 0 and 1'
@@ -36,7 +37,7 @@ class SimMIM(nn.Module):
 
         # for indexing purposes
 
-        batch_range = torch.arange(batch, device = device)[:, None]
+        batch_range = torch.arange(batch, device=device)[:, None]
 
         # get positions
 
@@ -49,14 +50,14 @@ class SimMIM(nn.Module):
 
         # prepare mask tokens
 
-        mask_tokens = repeat(self.mask_token, 'd -> b n d', b = batch, n = num_patches)
+        mask_tokens = repeat(self.mask_token, 'd -> b n d', b=batch, n=num_patches)
         mask_tokens = mask_tokens + pos_emb
 
         # calculate of patches needed to be masked, and get positions (indices) to be masked
 
         num_masked = int(self.masking_ratio * num_patches)
-        masked_indices = torch.rand(batch, num_patches, device = device).topk(k = num_masked, dim = -1).indices
-        masked_bool_mask = torch.zeros((batch, num_patches), device = device).scatter_(-1, masked_indices, 1).bool()
+        masked_indices = torch.rand(batch, num_patches, device=device).topk(k=num_masked, dim=-1).indices
+        masked_bool_mask = torch.zeros((batch, num_patches), device=device).scatter_(-1, masked_indices, 1).bool()
 
         # mask tokens
 

@@ -1,30 +1,35 @@
 import torch
 from torch import nn
 
+
 def exists(val):
     return val is not None
+
 
 def identity(t):
     return t
 
+
 def clone_and_detach(t):
     return t.clone().detach()
+
 
 def apply_tuple_or_single(fn, val):
     if isinstance(val, tuple):
         return tuple(map(fn, val))
     return fn(val)
 
+
 class Extractor(nn.Module):
     def __init__(
-        self,
-        vit,
-        device = None,
-        layer = None,
-        layer_name = 'transformer',
-        layer_save_input = False,
-        return_embeddings_only = False,
-        detach = True
+            self,
+            vit,
+            device=None,
+            layer=None,
+            layer_name='transformer',
+            layer_save_input=False,
+            return_embeddings_only=False,
+            detach=True
     ):
         super().__init__()
         self.vit = vit
@@ -38,7 +43,7 @@ class Extractor(nn.Module):
 
         self.layer = layer
         self.layer_name = layer_name
-        self.layer_save_input = layer_save_input # whether to save input or output of layer
+        self.layer_save_input = layer_save_input  # whether to save input or output of layer
         self.return_embeddings_only = return_embeddings_only
 
         self.detach_fn = clone_and_detach if detach else identity
@@ -70,9 +75,9 @@ class Extractor(nn.Module):
         self.latents = None
 
     def forward(
-        self,
-        img,
-        return_embeddings_only = False
+            self,
+            img,
+            return_embeddings_only=False
     ):
         assert not self.ejected, 'extractor has been ejected, cannot be used anymore'
         self.clear()
