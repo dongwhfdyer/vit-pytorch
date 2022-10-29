@@ -106,6 +106,7 @@ class Attention(nn.Module):
         x = (attn @ v).transpose(1, 2).reshape(B, N, C)
         x = self.proj(x)
         x = self.proj_drop(x)
+        print("--------------------------------------------------")
         return x
 
 
@@ -198,10 +199,10 @@ class VisionTransformer(nn.Module):
 
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
         self.dist_token = nn.Parameter(torch.zeros(1, 1, embed_dim)) if distilled else None
-        self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + num_tokens, embed_dim))
+        self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + num_tokens, embed_dim))  # 1 * (N+2) * C
         self.pos_drop = nn.Dropout(p=drop_ratio)
 
-        dpr = [x.item() for x in torch.linspace(0, drop_path_ratio, depth)]  # stochastic depth decay rule
+        dpr = [x.item() for x in torch.linspace(0, drop_path_ratio, depth)]
         self.blocks = nn.Sequential(*[
             Block(dim=embed_dim, num_heads=num_heads, mlp_ratio=mlp_ratio, qkv_bias=qkv_bias, qk_scale=qk_scale,
                   drop_ratio=drop_ratio, attn_drop_ratio=attn_drop_ratio, drop_path_ratio=dpr[i],
@@ -247,14 +248,18 @@ class VisionTransformer(nn.Module):
         x = self.pos_drop(x + self.pos_embed)
         x = self.blocks(x)
         x = self.norm(x)
-        if self.dist_token is None:
+        # # ---------kkuhn-block------------------------------ # kuhn only for testing
+        # a = x[:,0]
+        # b = x[:,1]
+        # # ---------kkuhn-block------------------------------
+        if self.dist_token is None: # True
             return self.pre_logits(x[:, 0])
         else:
             return x[:, 0], x[:, 1]
 
     def forward(self, x):
         x = self.forward_features(x)
-        if self.head_dist is not None:
+        if self.head_dist is not None:  # False
             x, x_dist = self.head(x[0]), self.head_dist(x[1])
             if self.training and not torch.jit.is_scripting():
                 return x, x_dist
@@ -366,3 +371,33 @@ def vit_huge_patch14_224(num_classes: int = 1000, has_logits: bool = True):
                               representation_size=1280 if has_logits else None,
                               num_classes=num_classes)
     return model
+
+
+if __name__ == '__main__':
+    # #---------kkuhn-block------------------------------ # test multiAttn
+    # model = Attention(256)
+    # input = torch.randn(5, 14 * 14, 256)
+    # output = model(input)
+    # #---------kkuhn-block------------------------------
+
+    # # ---------kkuhn-block------------------------------ test embedding
+    # # PatchEmbedding: def __init__(self, img_size=224, patch_size=16, in_c=3, embed_dim=768, norm_layer=None):
+    # model = PatchEmbedding(224, 16, 3, 768)
+    # input = torch.randn(5, 3, 224, 224)
+    # output = model(input)
+    # print("--------------------------------------------------")
+    # # ---------kkuhn-block------------------------------
+
+    # ---------kkuhn-block------------------------------ test VisionTransformer
+    # VisionTransformer: def __init__(self, img_size=224, patch_size=16, in_c=3, num_classes=1000,
+    #              embed_dim=768, depth=12, num_heads=12, mlp_ratio=4.0, qkv_bias=True,
+    #              qk_scale=None, representation_size=None, distilled=False, drop_ratio=0.,
+    #              attn_drop_ratio=0., drop_path_ratio=0., embed_layer=PatchEmbedding, norm_layer=None,
+    #              act_layer=None):
+    model = VisionTransformer(img_size=224, patch_size=16, embed_dim=768, depth=12, num_heads=12, representation_size=768, num_classes=1000)
+    input = torch.randn(5, 3, 224, 224)
+    output = model(input)
+    print("--------------------------------------------------")
+    # ---------kkuhn-block------------------------------
+
+    pass
